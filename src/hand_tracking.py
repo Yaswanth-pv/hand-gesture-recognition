@@ -40,12 +40,32 @@ while True:
     result = detector.detect(mp_image)
 
     # Draw landmarks if a hand was detected
+    # Standard hand connections (pairs of landmark indices to connect with lines)
+    HAND_CONNECTIONS = [
+        (0,1),(1,2),(2,3),(3,4),        # thumb
+        (0,5),(5,6),(6,7),(7,8),        # index finger
+        (5,9),(9,10),(10,11),(11,12),   # middle finger
+        (9,13),(13,14),(14,15),(15,16), # ring finger
+        (13,17),(17,18),(18,19),(19,20),# pinky
+        (0,17)                          # palm base connection
+    ]
+
     if result.hand_landmarks:
         h, w, _ = frame.shape
         for hand_landmarks in result.hand_landmarks:
+            # Convert all 21 landmarks to pixel coordinates first
+            points = []
             for landmark in hand_landmarks:
                 x = int(landmark.x * w)
                 y = int(landmark.y * h)
+                points.append((x, y))
+
+            # Draw connecting lines
+            for start_idx, end_idx in HAND_CONNECTIONS:
+                cv2.line(frame, points[start_idx], points[end_idx], (255, 0, 0), 2)
+
+            # Draw landmark points on top of the lines
+            for (x, y) in points:
                 cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
 
     cv2.imshow("Hand Tracking", frame)
