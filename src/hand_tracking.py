@@ -2,12 +2,10 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
-from gesture_logic import count_fingers
+from gesture_logic import count_fingers, recognize_gesture
 
-# Path to the model file we downloaded
 MODEL_PATH = "models/hand_landmarker.task"
 
-# Set up the hand landmarker options
 base_options = mp_python.BaseOptions(model_asset_path=MODEL_PATH)
 options = vision.HandLandmarkerOptions(
     base_options=base_options,
@@ -16,7 +14,6 @@ options = vision.HandLandmarkerOptions(
     min_tracking_confidence=0.5
 )
 
-# Create the detector
 detector = vision.HandLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0)
@@ -27,50 +24,45 @@ if not cap.isOpened():
 
 print("Hand tracking started. Press 'q' to quit.")
 
+HAND_CONNECTIONS = [
+    (0,1),(1,2),(2,3),(3,4),
+    (0,5),(5,6),(6,7),(7,8),
+    (5,9),(9,10),(10,11),(11,12),
+    (9,13),(13,14),(14,15),(15,16),
+    (13,17),(17,18),(18,19),(19,20),
+    (0,17)
+]
+
 while True:
     ret, frame = cap.read()
     if not ret:
         print("Error: Failed to grab frame.")
         break
 
-    # Convert frame (BGR from OpenCV) to RGB for MediaPipe
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-
-    # Run detection
     result = detector.detect(mp_image)
-
-    # Draw landmarks if a hand was detected
-    # Standard hand connections (pairs of landmark indices to connect with lines)
-    HAND_CONNECTIONS = [
-        (0,1),(1,2),(2,3),(3,4),        # thumb
-        (0,5),(5,6),(6,7),(7,8),        # index finger
-        (5,9),(9,10),(10,11),(11,12),   # middle finger
-        (9,13),(13,14),(14,15),(15,16), # ring finger
-        (13,17),(17,18),(18,19),(19,20),# pinky
-        (0,17)                          # palm base connection
-    ]
 
     if result.hand_landmarks:
         h, w, _ = frame.shape
         for hand_landmarks in result.hand_landmarks:
-            # Convert all 21 landmarks to pixel coordinates first
             points = []
             for landmark in hand_landmarks:
                 x = int(landmark.x * w)
                 y = int(landmark.y * h)
                 points.append((x, y))
 
-            # Count extended fingers and display it
             finger_count = count_fingers(points)
+            gesture_name = recognize_gesture(points)
+
             cv2.putText(frame, f"Fingers: {finger_count}", (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+            cv2.putText(frame, f"Gesture: {gesture_name}", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 3)
 
-            # Draw connecting lines
             for start_idx, end_idx in HAND_CONNECTIONS:
                 cv2.line(frame, points[start_idx], points[end_idx], (255, 0, 0), 2)
 
-            # Draw landmark points on top of the lines
             for (x, y) in points:
                 cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
 
