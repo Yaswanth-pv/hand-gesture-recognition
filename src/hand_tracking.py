@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
+from gesture_logic import count_fingers
 
 # Path to the model file we downloaded
 MODEL_PATH = "models/hand_landmarker.task"
@@ -59,6 +60,11 @@ while True:
                 x = int(landmark.x * w)
                 y = int(landmark.y * h)
                 points.append((x, y))
+
+            # Count extended fingers and display it
+            finger_count = count_fingers(points)
+            cv2.putText(frame, f"Fingers: {finger_count}", (10, 50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
             # Draw connecting lines
             for start_idx, end_idx in HAND_CONNECTIONS:
