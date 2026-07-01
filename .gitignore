@@ -15,4 +15,4 @@ models/*
 Thumbs.db
 
 # VS Code
-.vscode/
+.vscode/screenshot_*.png
